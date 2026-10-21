@@ -1,0 +1,104 @@
+{
+  "tool": {
+    "name": "DockShield",
+    "version": "1.0.0"
+  },
+  "scan": {
+    "target": "examples/Dockerfile.vulnerable",
+    "timestamp_utc": "2026-10-21T14:30:00+00:00",
+    "rules_file": "security_rules.json",
+    "ruleset": "DockShield Baseline (aligned with CIS Docker Benchmark)",
+    "instructions_analyzed": 5
+  },
+  "summary": {
+    "rules_evaluated": 5,
+    "rules_passed": 0,
+    "rules_failed": 5,
+    "findings_total": 5,
+    "findings_by_severity": {
+      "CRITICAL": 2,
+      "HIGH": 1,
+      "MEDIUM": 1,
+      "LOW": 1
+    },
+    "fail_threshold": "HIGH",
+    "verdict": "FAIL"
+  },
+  "results": [
+    {
+      "rule_id": "DS-001",
+      "title": "Container runs as root user",
+      "severity": "CRITICAL",
+      "cis_reference": "CIS Docker Benchmark 4.1",
+      "status": "FAIL",
+      "findings": [
+        {
+          "line": 1,
+          "evidence": "FROM python:latest",
+          "detail": "No USER instruction in the final build stage; the container runs as root by default.",
+          "remediation": "Create an unprivileged user and switch to it with a USER instruction."
+        }
+      ]
+    },
+    {
+      "rule_id": "DS-002",
+      "title": "Hard-coded secret in ENV/ARG",
+      "severity": "CRITICAL",
+      "cis_reference": "CIS Docker Benchmark 4.10",
+      "status": "FAIL",
+      "findings": [
+        {
+          "line": 2,
+          "evidence": "ENV DB_PASSWORD=********",
+          "detail": "A credential-like variable is assigned a value inside the image, exposing it to anyone who can pull or inspect the image.",
+          "remediation": "Remove the secret from the image; inject it at runtime via Docker/Kubernetes secrets or BuildKit --mount=type=secret."
+        }
+      ]
+    },
+    {
+      "rule_id": "DS-003",
+      "title": "Unpinned or 'latest' base image",
+      "severity": "HIGH",
+      "cis_reference": "CIS Docker Benchmark 4.2",
+      "status": "FAIL",
+      "findings": [
+        {
+          "line": 1,
+          "evidence": "FROM python:latest",
+          "detail": "Base image 'python:latest' uses the mutable ':latest' tag.",
+          "remediation": "Pin the base image to a specific version tag or, preferably, an immutable @sha256 digest from a trusted registry."
+        }
+      ]
+    },
+    {
+      "rule_id": "DS-004",
+      "title": "ADD used instead of COPY",
+      "severity": "MEDIUM",
+      "cis_reference": "CIS Docker Benchmark 4.9",
+      "status": "FAIL",
+      "findings": [
+        {
+          "line": 3,
+          "evidence": "ADD . /app",
+          "detail": "ADD can auto-extract archives and fetch remote URLs, which increases the attack surface; COPY is more predictable.",
+          "remediation": "Use COPY for local files; fetch remote content explicitly with curl/wget and verify its checksum."
+        }
+      ]
+    },
+    {
+      "rule_id": "DS-005",
+      "title": "Missing HEALTHCHECK instruction",
+      "severity": "LOW",
+      "cis_reference": "CIS Docker Benchmark 4.6",
+      "status": "FAIL",
+      "findings": [
+        {
+          "line": null,
+          "evidence": "(no matching instruction found)",
+          "detail": "The final image defines no HEALTHCHECK, so orchestrators cannot detect a hung or compromised service.",
+          "remediation": "Add a HEALTHCHECK instruction so the runtime can detect unhealthy containers."
+        }
+      ]
+    }
+  ]
+}

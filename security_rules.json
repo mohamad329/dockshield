@@ -1,0 +1,65 @@
+{
+  "ruleset": "DockShield Baseline (aligned with CIS Docker Benchmark)",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "DS-001",
+      "title": "Container runs as root user",
+      "description": "The final image stage has no non-root USER instruction, so the container process runs as root.",
+      "severity": "CRITICAL",
+      "type": "user_check",
+      "scope": "final_stage",
+      "pattern": "^USER\\s+(?:root|0)(?::\\S*)?\\s*$",
+      "remediation": "Create an unprivileged user and switch to it with a USER instruction.",
+      "cis_reference": "CIS Docker Benchmark 4.1"
+    },
+    {
+      "id": "DS-002",
+      "title": "Hard-coded secret in ENV/ARG",
+      "description": "A credential-like variable is assigned a value inside the image, exposing it to anyone who can pull or inspect the image.",
+      "severity": "CRITICAL",
+      "type": "forbid_pattern",
+      "applies_to": ["ENV", "ARG"],
+      "pattern": "(?:^(?:ENV|ARG)\\s+|\\s)(?:[A-Za-z0-9_]*(?:PASSWORD|PASSWD|PASSPHRASE|SECRET|TOKEN|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY)[A-Za-z0-9_]*|(?:[A-Za-z0-9_]*_)?PASS)(?:=|\\s+)[^\\s=]+",
+      "exclude_pattern": "(?:_FILE|_PATH)(?:=|\\s)",
+      "redact": true,
+      "remediation": "Remove the secret from the image; inject it at runtime via Docker/Kubernetes secrets or BuildKit --mount=type=secret.",
+      "cis_reference": "CIS Docker Benchmark 4.10"
+    },
+    {
+      "id": "DS-003",
+      "title": "Unpinned or 'latest' base image",
+      "description": "The base image is not pinned to a specific version or digest.",
+      "severity": "HIGH",
+      "type": "base_image_check",
+      "params": {
+        "forbidden_tags": ["latest"]
+      },
+      "remediation": "Pin the base image to a specific version tag or, preferably, an immutable @sha256 digest from a trusted registry.",
+      "cis_reference": "CIS Docker Benchmark 4.2"
+    },
+    {
+      "id": "DS-004",
+      "title": "ADD used instead of COPY",
+      "description": "ADD can auto-extract archives and fetch remote URLs, which increases the attack surface; COPY is more predictable.",
+      "severity": "MEDIUM",
+      "type": "forbid_pattern",
+      "applies_to": ["ADD"],
+      "pattern": "^ADD\\s+",
+      "remediation": "Use COPY for local files; fetch remote content explicitly with curl/wget and verify its checksum.",
+      "cis_reference": "CIS Docker Benchmark 4.9"
+    },
+    {
+      "id": "DS-005",
+      "title": "Missing HEALTHCHECK instruction",
+      "description": "The final image defines no HEALTHCHECK, so orchestrators cannot detect a hung or compromised service.",
+      "severity": "LOW",
+      "type": "require_pattern",
+      "scope": "final_stage",
+      "applies_to": ["HEALTHCHECK"],
+      "pattern": "^HEALTHCHECK\\s+(?!NONE\\b)\\S+",
+      "remediation": "Add a HEALTHCHECK instruction so the runtime can detect unhealthy containers.",
+      "cis_reference": "CIS Docker Benchmark 4.6"
+    }
+  ]
+}
